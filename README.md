@@ -5,4 +5,4 @@ The scripts above were used in our article "Simulation of Mixed Self-Assembled M
 
 They should work with any molecular dynamics trajcetory data of self-assembled monolayer systems and allow for a quick computation of lattice constant, tilt angles, and thickness, order paramters as well as trans- and helical ratios.
 
-Examples and some more documentation will follow soon.  
+The output can be written to either text or numpy files. Examples and some more documentation will follow soon.  
