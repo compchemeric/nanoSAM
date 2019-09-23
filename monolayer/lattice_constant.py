@@ -4,13 +4,16 @@ from scipy.spatial import distance
 import argparse
 
 
-def lattice_constants(trajectory):
+def lattice_constants(trajectory, verbose):
     thio_indices = trajectory.topology.select('name THIO or name S')
     
     averaged_six_nearest_neighbours= []
     std_dev = []
     
     for frame in range(trajectory.n_frames):
+        if verbose:
+            print('{:d} / {:d}'.format(frame, trajectory.n_frames))
+            
         thio_x = trajectory.xyz[frame,thio_indices,0]
         thio_y = trajectory.xyz[frame,thio_indices,1]
         box_length_x = trajectory.unitcell_lengths[frame,0]
@@ -49,6 +52,9 @@ if __name__ == "__main__":
     parser.add_argument('--no-stream', dest='stream', help='Disable iterative file stream for input trajectory', action='store_false')
     parser.set_defaults(stream=False)
     
+    parser.add_argument('--verbose', dest='verbose', help='Verbose', action='store_const', const=True)
+    parser.set_defaults(verbose=False)
+    
     parser.add_argument('--chunks', help='Size of chunks to be streamed if streaming is enabled', type=int)
     parser.add_argument('--frameskip', dest='frameskip', help='Only evaluate every nth frame', type=int)
     parser.set_defaults(frameskip=1)
@@ -63,19 +69,25 @@ if __name__ == "__main__":
     #Handle streaming or completely loading the file
     if args.stream:
         for chunk in md.iterload(args.trajectory,top=args.topology, chunk = args.chunks, stride=args.frameskip):
-            averaged_six_nearest_neighbours_chunk, std_dev_chunk = lattice_constants(chunk)
+            averaged_six_nearest_neighbours_chunk, std_dev_chunk = lattice_constants(chunk, args.verbose)
             averaged_six_nearest_neighbours.extend(averaged_six_nearest_neighbours_chunk)
             std_dev.extend(std_dev_chunk)
             time.extend(chunk.time)
             no_frames += chunk.n_frames
         
     else:
+        if args.verbose:
+            print("Loading trajectory")
+        
         trajectory = md.load(args.trajectory,top=args.topology, stride=args.frameskip)
+        
+        if args.verbose:
+            print("Trajectory loaded")
         
         time = trajectory.time
         no_frames = trajectory.n_frames
         
-        averaged_six_nearest_neighbours, std_dev = lattice_constants(trajectory)
+        averaged_six_nearest_neighbours, std_dev = lattice_constants(trajectory, args.verbose)
     
     #Print the average
     print(np.mean(averaged_six_nearest_neighbours))
@@ -87,3 +99,6 @@ if __name__ == "__main__":
                 print("Time: {}   Average: {}   Standard deviation: {}".format(time[frame], averaged_six_nearest_neighbours[frame], std_dev[frame]), file=text_file)
     else:
         np.save(args.output, [time, averaged_six_nearest_neighbours, std_dev])
+    
+    if args.verbose:
+        print("File saved to: {}", args.output)

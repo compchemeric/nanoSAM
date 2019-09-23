@@ -107,6 +107,9 @@ if __name__ == "__main__":
     parser.add_argument('--pdf', dest='pdf', help='Create a probability density function instead of a histogram with atom mass', action='store_true')
     parser.set_defaults(pdf=False)
     
+     parser.add_argument('--verbose', dest='verbose', help='Verbose', action='store_const', const=True)
+    parser.set_defaults(verbose=False)
+    
     parser.add_argument('--resolution', dest='resolution', help='Coarse grained(CG) or AA')
     parser.set_defaults(resolution='cg')
     
@@ -114,8 +117,14 @@ if __name__ == "__main__":
     
     histograms = []
     
+    if args.verbose:
+        print("Loading trajectory")
+        
     trajectory = md.load(args.trajectory,top=args.topology, stride=args.frameskip)
     
+    if args.verbose:
+        print("Trajectory loaded")
+        
     #Parse resolution
     amu = {}
     
@@ -136,3 +145,6 @@ if __name__ == "__main__":
     with open(args.output, "w") as file:
         np.savetxt(file, histograms)
         np.savetxt(file, last_line)
+    
+    if args.verbose:
+        print("File saved to: {}", args.output)

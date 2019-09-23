@@ -8,12 +8,12 @@ from scipy.cluster.hierarchy import fcluster, linkage
 def closest_node(node, nodes, x_len, y_len):
     #Emulate cyclic repetition
     nodes_x = nodes[:,0]
-    nodes_x[nodes_x-node[0] > 0.5*x_len] -= 0.5*x_len
-    nodes_x[node[0]-nodes_x > 0.5*x_len] +=  0.5*x_len
+    nodes_x[nodes_x-node[0] > 0.5*x_len] -= x_len
+    nodes_x[node[0]-nodes_x > 0.5*x_len] += x_len
     
     nodes_y = nodes[:,1]
-    nodes_y[nodes_y-node[1] > 0.5*y_len] -= 0.5*y_len
-    nodes_y[node[1]-nodes_y > 0.5*y_len] += 0.5*y_len
+    nodes_y[nodes_y-node[1] > 0.5*y_len] -= y_len
+    nodes_y[node[1]-nodes_y > 0.5*y_len] += y_len
     
     merged_nodes = np.array((nodes_x,nodes_y)).T
     
@@ -65,18 +65,29 @@ if __name__ == "__main__":
     parser.add_argument('--frameskip', dest='frameskip', help='Only evaluate every nth frame', type=int)
     parser.set_defaults(frameskip=1)
     
+    parser.add_argument('--verbose', dest='verbose', help='Verbose', action='store_const', const=True)
+    parser.set_defaults(verbose=False)
+    
     parser.add_argument('--bins', dest='bins', help='Number of bins for voronoi', type=int)
     parser.set_defaults(bins = 100)
     
     args = parser.parse_args()
     
+    if args.verbose:
+        print("Loading trajectory")
+    
     trajectory = md.load(args.trajectory,top=args.topology, stride=args.frameskip)
     
+    if args.verbose:
+        print("Trajectory loaded")
+        
     thickness_map_list = []
     avg_thickness_list = []
     
     for frame_num in range(trajectory.n_frames):
-        
+        if args.verbose:
+            print('{:d} / {:d}'.format(frame_num, trajectory.n_frames))
+            
         box_length_x = trajectory.unitcell_lengths[frame_num,0]
         box_length_y = trajectory.unitcell_lengths[frame_num,1]
     
@@ -112,3 +123,6 @@ if __name__ == "__main__":
                     
     else:
         np.save(args.output, [trajectory.time, avg_thickness_list, average_thickness_map_over_all_frames])
+        
+    if args.verbose:
+        print("File saved to: {}", args.output)

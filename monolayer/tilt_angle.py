@@ -20,7 +20,7 @@ def angle_between(v1, v2):
   return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
 
 
-def angles(trajectory, resolution):
+def angles(trajectory, resolution, verbose):
     selection = []
     
     #Hanlde resolution selection
@@ -41,6 +41,9 @@ def angles(trajectory, resolution):
     std_devs = []
     
     for frame in range(trajectory.n_frames):
+        if verbose:
+            print('{:d} / {:d}'.format(frame,trajectory.n_frames))
+            
         molecule_angles = []
 
         for molecule in molecule_list:
@@ -77,6 +80,9 @@ if __name__ == "__main__":
     parser.add_argument('--frameskip', dest='frameskip', help='Only evaluate every nth frame', type=int)
     parser.set_defaults(frameskip=1)
     
+    parser.add_argument('--verbose', dest='verbose', help='Verbose', action='store_const', const=True)
+    parser.set_defaults(verbose=False)
+    
     parser.add_argument('--resolution', dest='resolution', help='Coarse grained(CG) or AA')
     parser.set_defaults(resolution='cg')
     
@@ -89,19 +95,25 @@ if __name__ == "__main__":
     #Handle streaming or completely loading the file
     if args.stream:
         for chunk in md.iterload(args.trajectory,top=args.topology, chunk = args.chunks, stride=args.frameskip):
-            avg_molecule_angles_chunk, std_devs_chunk = angles(chunk, args.resolution)
+            avg_molecule_angles_chunk, std_devs_chunk = angles(chunk, args.resolution, args.verbose)
             avg_molecule_angles.extend(avg_molecule_angles_chunk)
             std_devs.extend(std_devs_chunk)
             time_list.extend(chunk.time)
             no_frames += chunk.n_frames
         
     else:
+        if args.verbose:
+            print("Loading trajectory")
+            
         trajectory = md.load(args.trajectory,top=args.topology, stride=args.frameskip)
+        
+        if args.verbose:
+            print("Trajectory loaded")
         
         time_list = trajectory.time
         no_frames = trajectory.n_frames
         
-        avg_molecule_angles, std_devs = angles(trajectory, args.resolution)
+        avg_molecule_angles, std_devs = angles(trajectory, args.resolution, args.verbose)
     
     #Save the results
     if args.format != 'numpy':
@@ -111,3 +123,5 @@ if __name__ == "__main__":
     else:
         np.save(args.output, [time_list, np.rad2deg(avg_molecule_angles), std_devs])
     
+    if args.verbose:
+        print("File saved to: {}", args.output)
